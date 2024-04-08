@@ -1,7 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# <UserAuthConfigSnippet>
 from configparser import SectionProxy
 from uuid import UUID
 
@@ -9,9 +8,7 @@ from uuid import UUID
 from azure.identity import ClientSecretCredential
 from msgraph import GraphServiceClient
 from msgraph.generated.service_principals.service_principals_request_builder import ServicePrincipalsRequestBuilder
-from msgraph.generated.users.item.user_item_request_builder import UserItemRequestBuilder
-from msgraph.generated.users.item.mail_folders.item.messages.messages_request_builder import (
-    MessagesRequestBuilder)
+
 from msgraph.generated.models.user import User
 from msgraph.generated.models.password_profile import PasswordProfile
 from msgraph.generated.models.app_role_assignment import AppRoleAssignment
@@ -27,10 +24,6 @@ class Graph:
 
     def __init__(self, config: SectionProxy):
         self.settings = config
-        # client_id = self.settings['clientId']
-        # tenant_id = self.settings['tenantId']
-        # client_secret = self.settings['clientSecret']
-        # OVOC_app_id = self.settings['OVOC_app_id']
 
         config = Utils.get_config("config.cfg")
         client_id = config['azure'].get('client_id')
@@ -43,56 +36,12 @@ class Graph:
                                                         client_secret=client_secret)
         # self.user_client = GraphServiceClient(self.client_credential, graph_scopes)
         self.user_client = GraphServiceClient(self.client_credential)
-# </UserAuthConfigSnippet>
 
-    # <GetUserTokenSnippet>
-    async def get_user_token(self):
-        graph_scopes = self.settings['graphUserScopes']
-        access_token = self.client_credential.get_token(graph_scopes)
-        return access_token.token
-    # </GetUserTokenSnippet>
-
-    # <GetUserSnippet>
-    async def get_user(self):
-        # Only request specific properties using $select
-        query_params = UserItemRequestBuilder.UserItemRequestBuilderGetQueryParameters(
-            select=['displayName', 'mail', 'userPrincipalName']
-        )
-
-        request_config = UserItemRequestBuilder.UserItemRequestBuilderGetRequestConfiguration(
-            query_parameters=query_params
-        )
-
-        user = await self.user_client.me.get(request_configuration=request_config)
-        return user
-    # </GetUserSnippet>
-
-    # <GetInboxSnippet>
-    async def get_inbox(self):
-        query_params = MessagesRequestBuilder.MessagesRequestBuilderGetQueryParameters(
-            # Only request specific properties
-            select=['from', 'isRead', 'receivedDateTime', 'subject'],
-            # Get at most 25 results
-            top=25,
-            # Sort by received time, newest first
-            orderby=['receivedDateTime DESC']
-        )
-        request_config = MessagesRequestBuilder.MessagesRequestBuilderGetRequestConfiguration(
-            query_parameters= query_params
-        )
-
-        messages = await self.user_client.me.mail_folders.by_mail_folder_id('inbox').messages.get(
-                request_configuration=request_config)
-        return messages
-    # </GetInboxSnippet>
-
-    # <SendMailSnippet>
     async def assign_roles(self, app_role_assignment_body: AppRoleAssignment):
         print("creating user with json_body: ", app_role_assignment_body)
         result = await (self.user_client.service_principals.by_service_principal_id(self.ovoc_app_id).
                         app_role_assignments.post(app_role_assignment_body))
         return result
-    # </SendMailSnippet>
 
     async def get_roles(self):
         result = await self.user_client.service_principals.by_service_principal_id( self.ovoc_app_id).get()
@@ -101,7 +50,6 @@ class Graph:
             app_role_dict[app_role.display_name] = app_role.id
         print(app_role_dict)
         return app_role_dict
-    # </SendMailSnippet>
 
     async def get_cdx_users(self):
         cdx_users_dict = {}
@@ -116,16 +64,10 @@ class Graph:
         result = await self.user_client.users.get()
         return result
 
-    # </SendMailSnippet>
-
-
-    # <MakeGraphCallSnippet>
     async def make_graph_call(self):
         # INSERT YOUR CODE HERE
         return
-    # </MakeGraphCallSnippet>
 
-    # create user:
     async def create_user(self, json_body: dict):
         print("creating user with json_body: ", json_body)
 
