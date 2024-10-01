@@ -1,6 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# <UserAuthConfigSnippet>
+from configparser import SectionProxy
+from azure.identity import DeviceCodeCredential
+from msgraph import GraphServiceClient
+from msgraph.generated.users.item.user_item_request_builder import UserItemRequestBuilder
+from msgraph.generated.users.item.mail_folders.item.messages.messages_request_builder import (
+    MessagesRequestBuilder)
+from msgraph.generated.users.item.send_mail.send_mail_post_request_body import (
+    SendMailPostRequestBody)
+from msgraph.generated.models.message import Message
+from msgraph.generated.models.item_body import ItemBody
+from msgraph.generated.models.body_type import BodyType
+from msgraph.generated.models.recipient import Recipient
+from msgraph.generated.models.email_address import EmailAddress
+
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 from configparser import SectionProxy
 from uuid import UUID
 
@@ -15,30 +33,24 @@ from msgraph.generated.models.o_auth2_permission_grant import OAuth2PermissionGr
 from msgraph.generated.models.user import User
 from msgraph.generated.models.password_profile import PasswordProfile
 from msgraph.generated.models.app_role_assignment import AppRoleAssignment
-
 from graphtutorial.utils import Utils
 
 
-class Graph:
+class GraphAdmin:
     settings: SectionProxy
-    # device_code_credential: DeviceCodeCredential
-    client_credential: ClientSecretCredential
+    device_code_credential: DeviceCodeCredential
     user_client: GraphServiceClient
 
     def __init__(self, config: SectionProxy):
         self.settings = config
+        client_id = self.settings['clientId']
+        tenant_id = self.settings['tenantId']
+        self.ovoc_app_id = self.settings['ovoc_app_id']
 
-        config = Utils.get_config("config.cfg")
-        client_id = config['azure'].get('client_id')
-        tenant_id = config['azure'].get('tenant_id')
-        client_secret = config['azure'].get('client_secret')
-        self.ovoc_app_id = config['azure'].get('ovoc_app_id')
-        # self.client_credential = ClientSecretCredential(client_id, tenant_id = tenant_id)
-        self.client_credential = ClientSecretCredential(tenant_id=tenant_id,
-                                                        client_id=client_id,
-                                                        client_secret=client_secret)
-        # self.user_client = GraphServiceClient(self.client_credential, graph_scopes)
-        self.user_client = GraphServiceClient(self.client_credential)
+        graph_scopes = self.settings['graphUserScopes'].split(' ')
+
+        self.device_code_credential = DeviceCodeCredential(client_id, tenant_id=tenant_id)
+        self.user_client = GraphServiceClient(self.device_code_credential, graph_scopes)
 
     async def assign_roles(self, app_role_assignment_body: AppRoleAssignment):
         print("creating user with json_body: ", app_role_assignment_body)
@@ -47,7 +59,7 @@ class Graph:
         return result
 
     async def get_roles(self):
-        result = await self.user_client.service_principals.by_service_principal_id( self.ovoc_app_id).get()
+        result = await self.user_client.service_principals.by_service_principal_id(self.ovoc_app_id).get()
         app_role_dict = {}
         for app_role in result.app_roles:
             app_role_dict[app_role.display_name] = app_role.id

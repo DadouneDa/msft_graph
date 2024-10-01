@@ -11,6 +11,7 @@ from msgraph.generated.models.app_role_assignment import AppRoleAssignment
 from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 
 from graph import Graph
+from graph_admin import GraphAdmin
 from graphtutorial.utils import PermissionType, permissions_mapping, Utils
 
 
@@ -18,12 +19,18 @@ async def main():
     print('Create AAD Users for Ovoc\n')
 
     # Load settings
-    config = configparser.ConfigParser()
-    config.read(['config.cfg', 'config.dev.cfg'])
-    azure_settings = config['azure']
+    # config = configparser.ConfigParser()
+    # config.read(['config.cfg', 'config.dev.cfg'])
+    # azure_settings = config['azure']
+    #
+    # graph: Graph = Graph(azure_settings)
 
-    graph: Graph = Graph(azure_settings)
+    # admin settings
+    config_admin = configparser.ConfigParser()
+    config_admin.read(['config_admin.cfg'])
+    azure_settings_admin = config_admin['azure']
 
+    graph_admin: GraphAdmin = GraphAdmin(azure_settings_admin)
     # await greet_user(graph)
 
     choice = -1
@@ -32,7 +39,10 @@ async def main():
         print('Please choose one of the following options:')
         print('0. Exit')
         print('1. Create Users')
-        print('2. Assign_roles')
+        print('2. Assign Roles')
+        print('3. Create App')
+        print('4. Add Permissions to App')
+        print('5. Get CDX users')
 
         try:
             choice = int(input())
@@ -43,15 +53,15 @@ async def main():
             if choice == 0:
                 print('Goodbye...')
             elif choice == 1:
-                await create_azure_users(graph)
+                await create_azure_users(graph_admin)
             elif choice == 2:
-                await assign_roles(graph)
-            # elif choice == 3:
-            #     await send_mail(graph)
-            # elif choice == 4:
-            #     await make_graph_call(graph)
-            # elif choice == 5:
-            #     await create_user(graph)
+                await assign_roles(graph_admin)
+            elif choice == 3:
+                await create_app(graph_admin)
+            elif choice == 4:
+                await add_permissions_to_app(graph_admin)
+            elif choice == 5:
+                await get_cdx_users(graph_admin)
             else:
                 print('Invalid choice!\n')
         except ODataError as odata_error:
@@ -62,15 +72,15 @@ async def main():
 
 
 # <AssignRoles>
-async def assign_roles(graph: Graph):
-    config = Utils.get_config("config.cfg")
+async def assign_roles(graph_admin: GraphAdmin):
+    config = Utils.get_config("config_admin.cfg")
     ovoc_app_id = config['azure'].get('ovoc_app_id')
 
     # getting roles dictionary
-    get_roles_dict = await graph.get_roles()
+    get_roles_dict = await graph_admin.get_roles()
 
     # get the users to apply the roles to
-    users_dict = await graph.get_cdx_users()
+    users_dict = await graph_admin.get_cdx_users()
 
     # Create role assignments body
     for user_key, user_value_id in users_dict.items():
@@ -84,13 +94,23 @@ async def assign_roles(graph: Graph):
                     app_role_id=UUID(str(role_value_id)),
                 )
                 print(role_assignments_body)
-                assign_role = await graph.assign_roles(app_role_assignment_body=role_assignments_body)
+                assign_role = await graph_admin.assign_roles(app_role_assignment_body=role_assignments_body)
     return
 # </AssignRoles>
 
+async def create_app(graph_admin: GraphAdmin):
+    await graph_admin.create_app()
 
-# <CreateUsers>
-async def create_azure_users(graph: Graph):
+
+async def get_cdx_users(graph_admin: GraphAdmin):
+    await graph_admin.get_cdx_users()
+
+
+async def add_permissions_to_app(graph_admin: GraphAdmin):
+    await graph_admin.add_permissions_to_app()
+
+
+async def create_azure_users(graph_admin: GraphAdmin):
     sub_choice = -1
     while sub_choice != 0:
         print('Sub-menu for Create Users:')
@@ -109,29 +129,30 @@ async def create_azure_users(graph: Graph):
         if sub_choice == 0:
             print('Returning to main menu...')
         elif sub_choice == 1:
-            await create_users_loop(graph, PermissionType.SYSTEM)
+            await create_users_loop(graph_admin, PermissionType.SYSTEM)
         elif sub_choice == 2:
-            await create_users_loop(graph, PermissionType.SP)
+            await create_users_loop(graph_admin, PermissionType.SP)
         elif sub_choice == 3:
-            await create_users_loop(graph, PermissionType.Channel)
+            await create_users_loop(graph_admin, PermissionType.Channel)
         elif sub_choice == 4:
-            await create_users_loop(graph, PermissionType.Customer)
+            await create_users_loop(graph_admin, PermissionType.Customer)
         else:
             print('Invalid sub-choice!\n')
+        if 0 < sub_choice < 4:
+            sub_choice = 0
 
-# </CreateUsers>
 
+async def create_users_loop(graph_admin: GraphAdmin, permission_ty):
+    msft_users = await graph_admin.get_users()
+    msft_domain = msft_users.value[0].user_principal_name.split('@')[-1]
 
-# <MakeGraphCallSnippet>
-async def create_users_loop(graph: Graph, permission_ty):
     user_types = permissions_mapping[permission_ty]
     for user_type in user_types:
         print(user_type.value)
         display_name = f'cdx_{permission_ty.value}_{user_type.value}'
-        user_json = {"user_principal_name": f'{display_name}@{graph.settings.get('msft_tenant_name')}',
+        user_json = {"user_principal_name": f'{display_name}@{msft_domain}',
                      "display_name": display_name}
-        await graph.create_user(json_body=user_json)
-# </MakeGraphCallSnippet>
+        await graph_admin.create_user(json_body=user_json)
 
 
 # Run main
