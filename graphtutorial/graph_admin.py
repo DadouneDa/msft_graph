@@ -44,12 +44,12 @@ class GraphAdmin:
     def __init__(self, config: SectionProxy):
         self.settings = config
         client_id = self.settings['clientId']
-        tenant_id = self.settings['tenantId']
+        # tenant_id = self.settings['tenantId']
         self.ovoc_app_id = self.settings['ovoc_app_id']
 
         graph_scopes = self.settings['graphUserScopes'].split(' ')
 
-        self.device_code_credential = DeviceCodeCredential(client_id, tenant_id=tenant_id)
+        self.device_code_credential = DeviceCodeCredential(client_id=client_id, tenant_id="")
         self.user_client = GraphServiceClient(self.device_code_credential, graph_scopes)
 
     async def assign_roles(self, app_role_assignment_body: AppRoleAssignment):
