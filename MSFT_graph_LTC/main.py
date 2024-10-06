@@ -12,7 +12,7 @@ from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 
 from graph import Graph
 from graph_admin import GraphAdmin
-from graphtutorial.utils import PermissionType, permissions_mapping, Utils
+from utils import PermissionType, permissions_mapping, Utils
 
 
 async def main():

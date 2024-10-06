@@ -16,7 +16,7 @@ from msgraph.generated.models.user import User
 from msgraph.generated.models.password_profile import PasswordProfile
 from msgraph.generated.models.app_role_assignment import AppRoleAssignment
 
-from graphtutorial.utils import Utils
+from utils import Utils
 
 
 class Graph:
